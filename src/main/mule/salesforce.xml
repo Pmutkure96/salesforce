@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	
+	
+	<flow name="salesforceFlow" doc:id="47e25866-1fcb-41db-b660-623181d2f106" >
+		<http:listener doc:name="Listener" doc:id="2ff3c996-8b30-491f-842e-3d36a311f1e0" config-ref="HTTP_Listener_config" path="/salesforce" allowedMethods="POST"/>
+		<ee:transform doc:name="Transform Message" doc:id="a7d1d0f9-549e-48da-ad42-3a9d8b0c3b0b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload map(items,index)->{
+	"Name": items.name,
+	"BillingStreet": items.billingAddress,
+	"BillingCity": items.billingCity,
+	"BillingState": items.billingstate,
+	"BillingCountry": items.billingCountry,
+	Phone: items.phone,
+	"BillingPostalCode": "441904",
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="66387630-5dce-43d6-8752-ee34266c0e3f" message="flow started"/>
+		<salesforce:create doc:name="Create" doc:id="b8f8a9b5-4f56-488c-a7de-43302cfd798f" type="Account" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="e8faa486-4274-4dc7-8154-b80d6f060868">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="salesforceFlow1-bulkUpsert" doc:id="6babc9da-6c1d-447b-8514-f9e3cac03107" >
+		<http:listener doc:name="Listener" doc:id="b317e745-024b-4071-a22e-bb7590920992" config-ref="HTTP_Listener_config" path="/upsert"/>
+		<db:select doc:name="Select" doc:id="0123ef1d-3776-44f3-8de6-92f3a4bbacae" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from player;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="5b5d4eb0-2bbb-4566-af51-eed0a3a4e7fb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Copy_of_Transform Message" doc:id="4d479940-e8e3-4720-98ee-a43df304e73f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map(items,index)->{
+	LastName: items.LastName,
+	FirstName: items.FirstName,
+	Phone: items.Mobile,
+	Email: items.FirstName ++ "."++ items.LastName ++ "@gmail.com"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:upsert doc:name="Upsert" doc:id="7ec11be1-9ff1-48d0-ab3e-973f90bbc852" objectType="Contact" externalIdFieldName="Email" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="d3eb04ff-ce27-4401-b14c-05e2ba7e401b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="salesforceFlow1" doc:id="c52373ca-daf7-4616-97b7-b3023545b08b" >
+		<http:listener doc:name="Listener" doc:id="87a4da6e-b9d2-4a4e-8035-41d1a58d4cb9" config-ref="HTTP_Listener_config" path="/getv2"/>
+		<salesforce:get-all-jobs-bulk-api-v2 doc:name="Get all jobs bulk api v 2" doc:id="7bd3aad3-0a18-483b-a6c6-a94db35bb45d" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="716ac613-5dbc-43b4-a41d-aa150b3995d2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="salesforceFlow3" doc:id="b22feb2a-286a-4d56-90b8-5b41a635b195" >
+		<http:listener doc:name="Listener" doc:id="50bd27e1-70e2-48aa-8494-9940e7b39609" config-ref="HTTP_Listener_config" path="/createv2"/>
+		<db:select doc:name="Select" doc:id="d12bdbc4-8976-44b6-a7e7-5a753e58df48" config-ref="Database_Config" >
+			<db:sql ><![CDATA[select * from player where Id between 17 and 40;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="38f705b7-af43-4ead-b51e-17a2908a3085" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="5e1e6a25-6719-443d-a1b2-a0d3d10841f0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(items,index)->{
+	LastName: items.LastName,
+	FirstName: items.FirstName,
+	Phone: items.Mobile,
+	Email: items.FirstName ++ "."++ items.LastName ++ "@gmail.com"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="024af700-a490-45b5-94fe-1be566b8a2ea">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv header=true
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create-job-bulk-api-v2 objectType="Contact" operation="insert" doc:name="Create job bulk api v 2" doc:id="0f373dd8-074f-46cf-9b8f-902db6164235" lineEnding="CRLF" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="d9a05242-901c-4009-bae6-8f3d746833ad" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="salesforceFlow2" doc:id="c1af5315-41d0-4ee9-8783-603c29464918">
+		<http:listener doc:name="Listener" doc:id="28085420-82cb-4dad-98a6-c5b06d77565f" config-ref="HTTP_Listener_config" path="/create" />
+		<ee:transform doc:name="Transform Message" doc:id="c0fa1412-a465-4dd4-adc5-1c6aab9b4503">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload map(items,index)->{
+	LastName: items.lastName,
+	FirstName: items.firstName,
+	Phone: items.mobile,
+	Email: items.email,
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create type="Contact" doc:name="Create" doc:id="007abcec-1301-4a64-a7d6-350040919c58" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="d69bb450-29d5-42c4-8e3d-0b52a06e9d48">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="salesforceFqueryall" doc:id="7934ddfe-e526-4fb2-a64a-8cfb10f4a7fe" >
+		<http:listener doc:name="Listener" doc:id="b885bb63-6c09-405b-b21e-b09657aa9cfb" config-ref="HTTP_Listener_config" path="/queryall"/>
+		<set-variable value="#[attributes.queyParams.Phone]" doc:name="Set Variable" doc:id="e250b135-cea0-4b75-bc45-c87705ed4f67" variableName="Phonevar" />
+		<salesforce:query-all doc:name="Query all" doc:id="688ed5db-6f83-43ec-a86e-06e20b3d37c2" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select FirstName,LastName,Phone,Email from Contact]]></salesforce:salesforce-query>
+		</salesforce:query-all>
+		<ee:transform doc:name="Transform Message" doc:id="a29a01b3-de33-4ac3-b76a-e0ce0e7b274c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="17a0e397-58fe-4a7b-889c-02236fa7712e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=true
+---
+payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="5d19d847-678b-43b3-a58f-85d6af273d29" path="C:\Users\PallaviMutkure\Desktop\output\salesforce\salesforce.csv"/>
+	</flow>
+	<flow name="salesforceFquery" doc:id="17d818c7-0917-4b7c-8246-c878429f1662" >
+		<http:listener doc:name="Listener" doc:id="935c9971-4433-4970-8e6f-cb4c163071f9" config-ref="HTTP_Listener_config" path="/query"/>
+		<set-variable value="#[attributes.queyParams.Phone]" doc:name="Set Variable" doc:id="cc6892d2-46e0-4a43-b6b5-5f6cdfcdd070" variableName="Phonevar" />
+		<salesforce:query doc:name="Query" doc:id="9b2d8aa8-ddcd-40bc-a435-145b7032f6fe" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select FirstName,LastName,Phone,Email from Contact]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="3bb87411-373c-46a4-aed5-8c0bdb88324e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="696a20ff-66c5-4cd4-8197-22ff10c0133e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=true
+---
+payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="fa75c328-298b-4638-a95c-70bab91c7bed" path="C:\Users\PallaviMutkure\Desktop\output\salesforce\salesforcequery.csv"/>
+	</flow>
+</mule>

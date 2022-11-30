@@ -1,0 +1,16 @@
+[{
+"id":1,
+"name":"Pallavi Mutkure",
+"billingAddress":"Khat Road",
+"billingCity":"Bhandara",
+"billingCountry":"India",
+"phone":"1234567",
+"billingstate":"MH"},
+{
+"id":2,
+"name":"Neha Sharma",
+"billingAddress":"Hinjewadi",
+"billingCity":"Pune",
+"phone":"55679878",
+"billingCountry":"India",
+"billingstate":"MH"}]

@@ -1,0 +1,9 @@
+http:
+  port: "8086"
+  path: "create"
+ 
+salesforce:
+  username: "pmutkure@consultant.sandbox"
+  password: "Mulesoft@96"
+  token: "IUvFGaHWMCcmyMImKPqpB8mZ"
+  authorizationURL: "https://login.salesforce.com/services/Soap/u/55.0"
